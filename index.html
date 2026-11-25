@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#1f3a5f">
+  <title>Obsidian書庫AI</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- ===== ヘッダー ===== -->
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-icon" aria-hidden="true">📚</span>
+      <span class="brand-name" id="brandName">Obsidian書庫AI</span>
+      <span class="version-badge" id="versionHeader">v1.1.0</span>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="btn btn-ghost" id="btnGuide">❓ 使い方</button>
+      <button type="button" class="btn btn-ghost" id="btnSettings" aria-label="設定">⚙ 設定</button>
+      <span class="user-chip hidden" id="userChip"></span>
+      <button type="button" class="btn btn-ghost hidden" id="btnLogout">ログアウト</button>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <!-- ===== 読み込み中 ===== -->
+    <section id="viewLoading" class="view">
+      <div class="center-box"><div class="spinner"></div><p>読み込み中…</p></div>
+    </section>
+
+    <!-- ===== 認証（ログイン/登録/再発行） ===== -->
+    <section id="viewAuth" class="view hidden">
+      <div class="auth-card card">
+        <div class="auth-tabs" role="tablist">
+          <button type="button" class="auth-tab active" data-auth-tab="login" role="tab">ログイン</button>
+          <button type="button" class="auth-tab" data-auth-tab="register" role="tab">新規会員登録</button>
+        </div>
+
+        <div id="pendingCardNotice" class="notice notice-info hidden">
+          共有された回答を見るには、ログインしてください。
+        </div>
+
+        <!-- ログイン -->
+        <form id="formLogin" class="auth-pane" data-auth-pane="login" autocomplete="on">
+          <label class="field">
+            <span class="field-label">メールアドレス</span>
+            <input type="email" name="email" required autocomplete="username" inputmode="email" placeholder="例）taro@example.com">
+          </label>
+          <label class="field">
+            <span class="field-label">パスワード</span>
+            <input type="password" name="password" required autocomplete="current-password" placeholder="パスワード（初回は仮パスワード）">
+          </label>
+          <button type="submit" class="btn btn-primary btn-block">ログイン</button>
+          <p class="auth-links">
+            <a href="#" data-auth-tab="forgot">パスワードを忘れた方</a>
+          </p>
+        </form>
+
+        <!-- 新規登録 -->
+        <form id="formRegister" class="auth-pane hidden" data-auth-pane="register">
+          <label class="field">
+            <span class="field-label">メールアドレス</span>
+            <input type="email" name="email" required autocomplete="email" inputmode="email" placeholder="仮パスワードが届きます">
+          </label>
+          <label class="field">
+            <span class="field-label">ニックネーム（30文字以内）</span>
+            <input type="text" name="nickname" required maxlength="30" placeholder="例）けんじ">
+          </label>
+
+          <div class="disclaimer" tabindex="0" aria-label="注意書き・免責事項">
+            <h3>注意書き・免責事項</h3>
+            <ol>
+              <li>本サービスは個人が非営利で運営する試験的なサービスです。<strong>ご利用はすべて自己責任</strong>でお願いします。</li>
+              <li>AIが生成する回答には誤りや不正確な内容が含まれる場合があります。重要な判断には必ずご自身で確認してください。</li>
+              <li>利用者間・当事者間で生じたトラブル（共有した内容をめぐる行き違い等）は、<strong>当事者同士で解決</strong>してください。運営者は一切の責任を負いません。</li>
+              <li>共有された回答を、作成者の許可なく第三者へ転送・公開しないでください。</li>
+              <li>予告なくサービス内容の変更・停止、データの削除を行う場合があります。</li>
+              <li>登録されたメールアドレスは、ログインとパスワード通知のためだけに使用します。</li>
+            </ol>
+          </div>
+          <label class="check-field">
+            <input type="checkbox" name="agreed" id="agreeCheck">
+            <span>上記の注意書き・免責事項を読み、<strong>同意します</strong>（必須）</span>
+          </label>
+          <button type="submit" class="btn btn-primary btn-block" id="btnRegister" disabled>同意して登録する</button>
+          <p class="hint">登録すると、入力したメールアドレスに<strong>仮パスワード</strong>が届きます。</p>
+        </form>
+
+        <!-- パスワード再発行 -->
+        <form id="formForgot" class="auth-pane hidden" data-auth-pane="forgot">
+          <h2 class="pane-title">パスワードの再発行</h2>
+          <p class="hint">登録したメールアドレスを入力してください。新しい仮パスワードをお送りします。次回ログイン時にパスワードを設定し直していただきます。</p>
+          <label class="field">
+            <span class="field-label">メールアドレス</span>
+            <input type="email" name="email" required autocomplete="email" inputmode="email">
+          </label>
+          <button type="submit" class="btn btn-primary btn-block">仮パスワードを送る</button>
+          <p class="auth-links"><a href="#" data-auth-tab="login">← ログインに戻る</a></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- ===== パスワード変更（初回強制） ===== -->
+    <section id="viewChangePw" class="view hidden">
+      <div class="auth-card card">
+        <h2 class="pane-title">🔐 本パスワードを設定してください</h2>
+        <p class="notice notice-warn" id="changePwNotice">仮パスワードでログインしています。パスワードを変更するまで、ほかの機能は使えません。</p>
+        <form id="formChangePw">
+          <label class="field">
+            <span class="field-label">現在のパスワード（メールの仮パスワード）</span>
+            <input type="password" name="currentPassword" required autocomplete="current-password">
+          </label>
+          <label class="field">
+            <span class="field-label">新しいパスワード</span>
+            <input type="password" name="newPassword" required minlength="8" maxlength="64" autocomplete="new-password">
+          </label>
+          <label class="field">
+            <span class="field-label">新しいパスワード（確認）</span>
+            <input type="password" name="confirmPassword" required minlength="8" maxlength="64" autocomplete="new-password">
+          </label>
+          <p class="hint">8文字以上で、英字と数字を両方含めてください。</p>
+          <button type="submit" class="btn btn-primary btn-block">パスワードを変更する</button>
+          <button type="button" class="btn btn-ghost btn-block hidden" id="btnCancelChangePw">キャンセル</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ===== メイン ===== -->
+    <section id="viewMain" class="view hidden">
+      <nav class="main-tabs" role="tablist">
+        <button type="button" class="main-tab active" data-tab="ask">🔍 質問する</button>
+        <button type="button" class="main-tab" data-tab="mine">🗂 マイナレッジ</button>
+        <button type="button" class="main-tab" data-tab="shared">💌 届いた回答 <span class="badge hidden" id="sharedCount"></span></button>
+        <button type="button" class="main-tab" data-tab="account">👤 アカウント</button>
+      </nav>
+
+      <!-- 質問する -->
+      <div class="tab-pane" data-pane="ask">
+        <div class="card">
+          <h2 class="section-title">書庫に質問する</h2>
+          <p class="hint" id="askHint">Obsidianの書庫（メモ）から関連ノートを探して、AIがまとめて答えます。</p>
+          <div id="askDisabled" class="notice notice-info hidden">書庫の検索は管理者のみ利用できる設定です。「届いた回答」から共有された回答を見られます。</div>
+          <form id="formAsk">
+            <div class="ask-box">
+              <textarea id="questionInput" rows="4" maxlength="1000" placeholder="例）去年の京都旅行で行ったお寺と感想をまとめて"></textarea>
+              <div id="interimText" class="interim" aria-live="polite"></div>
+            </div>
+            <div class="ask-actions">
+              <button type="button" class="btn btn-mic" id="btnMic" aria-pressed="false">
+                <span class="mic-dot" aria-hidden="true"></span><span class="mic-label">🎤 音声で入力</span>
+              </button>
+              <button type="button" class="btn btn-ghost" id="btnClearQ">クリア</button>
+              <button type="submit" class="btn btn-primary" id="btnAsk">送信して調べる ▶</button>
+            </div>
+            <p class="mic-status hidden" id="micStatus">🔴 聞き取り中… 話し終わったら「停止」または「送信して調べる」を押してください（途中で黙っても止まりません）</p>
+          </form>
+        </div>
+        <div id="askProgress" class="card progress-card hidden">
+          <div class="spinner"></div>
+          <div>
+            <p class="progress-title">調べています…</p>
+            <p class="hint" id="askProgressText">関連するノートを探しています（30秒ほどかかることがあります）</p>
+          </div>
+        </div>
+        <div id="askResult"></div>
+      </div>
+
+      <!-- マイナレッジ（管理一覧） -->
+      <div class="tab-pane hidden" data-pane="mine">
+        <div class="card">
+          <div class="section-head">
+            <h2 class="section-title">マイナレッジ（作成した回答）</h2>
+            <button type="button" class="btn btn-ghost btn-sm" id="btnReloadMine">↻ 更新</button>
+          </div>
+          <p class="hint">スイッチで「公開／非公開」を切り替えられます。公開先は「👥 公開先」で選びます。作成直後はすべて<strong>非公開（自分のみ）</strong>です。</p>
+          <div id="mineList" class="card-list"></div>
+        </div>
+      </div>
+
+      <!-- 届いた回答 -->
+      <div class="tab-pane hidden" data-pane="shared">
+        <div class="card">
+          <div class="section-head">
+            <h2 class="section-title">あなた宛に公開されている回答</h2>
+            <button type="button" class="btn btn-ghost btn-sm" id="btnReloadShared">↻ 更新</button>
+          </div>
+          <div id="sharedList" class="card-list"></div>
+        </div>
+      </div>
+
+      <!-- アカウント -->
+      <div class="tab-pane hidden" data-pane="account">
+        <div class="card">
+          <h2 class="section-title">アカウント</h2>
+          <dl class="kv" id="accountInfo"></dl>
+          <button type="button" class="btn btn-secondary" id="btnOpenChangePw">🔑 パスワードを変更する</button>
+        </div>
+        <div class="card hidden" id="adminPanel">
+          <h2 class="section-title">🛠 管理者メニュー（書庫の索引）</h2>
+          <dl class="kv" id="indexStatus"></dl>
+          <div class="btn-row">
+            <button type="button" class="btn btn-secondary" id="btnReindex">差分で索引を更新</button>
+            <button type="button" class="btn btn-ghost" id="btnReindexFull">全件を読み直す</button>
+          </div>
+          <p class="hint">索引は1時間ごとに自動更新されます。ノートを追加した直後に検索したいときに押してください。</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <span id="footerName">Obsidian書庫AI</span> <span id="versionFooter">v1.1.0</span>
+    ・ 利用は自己責任でお願いします
+  </footer>
+
+  <!-- ===== 回答カード モーダル ===== -->
+  <div class="modal hidden" id="cardModal" role="dialog" aria-modal="true" aria-labelledby="cardModalTitle">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-panel modal-wide">
+      <button type="button" class="modal-close" data-close aria-label="閉じる">×</button>
+      <div id="cardModalBody"></div>
+    </div>
+  </div>
+
+  <!-- ===== 公開先メンバー選択 モーダル ===== -->
+  <div class="modal hidden" id="shareModal" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-panel">
+      <button type="button" class="modal-close" data-close aria-label="閉じる">×</button>
+      <h2 id="shareModalTitle" class="section-title">👥 公開先を選ぶ</h2>
+      <p class="hint" id="shareModalCardTitle"></p>
+      <label class="switch-row">
+        <span>この回答を公開する</span>
+        <span class="switch"><input type="checkbox" id="shareToggle"><span class="slider"></span></span>
+      </label>
+      <div class="member-tools">
+        <button type="button" class="btn btn-ghost btn-sm" id="btnSelectAll">全員を選ぶ</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="btnSelectNone">選択を外す</button>
+      </div>
+      <div id="memberList" class="member-list"></div>
+      <div class="btn-row end">
+        <button type="button" class="btn btn-ghost" data-close>キャンセル</button>
+        <button type="button" class="btn btn-primary" id="btnSaveShare">保存する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 設定 モーダル ===== -->
+  <div class="modal hidden" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-panel">
+      <button type="button" class="modal-close" data-close aria-label="閉じる">×</button>
+      <h2 id="settingsTitle" class="section-title">⚙ 接続設定</h2>
+      <p class="hint">GASのウェブアプリURL（…/exec）を入力します。<code>config.js</code> に設定されている場合はそちらが優先されます。</p>
+      <label class="field">
+        <span class="field-label">GAS ウェブアプリURL</span>
+        <input type="url" id="gasUrlInput" placeholder="https://script.google.com/macros/s/xxxx/exec">
+      </label>
+      <p class="hint" id="gasUrlSource"></p>
+      <div class="btn-row">
+        <button type="button" class="btn btn-ghost" id="btnTestGas">接続テスト</button>
+        <button type="button" class="btn btn-primary" id="btnSaveGas">保存する</button>
+      </div>
+      <hr>
+      <label class="field">
+        <span class="field-label">文字の大きさ</span>
+        <select id="fontSizeSelect">
+          <option value="normal">ふつう</option>
+          <option value="large">大きい</option>
+          <option value="xlarge">とても大きい</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <!-- ===== 使い方ガイド モーダル ===== -->
+  <div class="modal hidden" id="guideModal" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-panel modal-wide">
+      <button type="button" class="modal-close" data-close aria-label="閉じる">×</button>
+      <h2 id="guideTitle" class="section-title">❓ 使い方ガイド</h2>
+
+      <details class="guide" open>
+        <summary>① はじめての方（会員登録とログイン）</summary>
+        <div class="flow">
+          <div class="flow-step"><span class="flow-num">1</span>「新規会員登録」でメールとニックネームを入力</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span class="flow-num">2</span>注意書きに同意して登録</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span class="flow-num">3</span>メールに届いた<strong>仮パスワード</strong>でログイン</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span class="flow-num">4</span>自分の<strong>本パスワード</strong>を設定して完了</div>
+        </div>
+        <ul>
+          <li>パスワード欄の <strong>👁</strong> を押すと、入力した文字を表示して確認できます。</li>
+          <li>パスワードを忘れたら、ログイン画面の「パスワードを忘れた方」から再発行できます。</li>
+        </ul>
+      </details>
+
+      <details class="guide">
+        <summary>② 声で質問する（音声入力）</summary>
+        <div class="flow">
+          <div class="flow-step"><span class="flow-num">1</span>「🎤 音声で入力」を押す</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span class="flow-num">2</span>マイクの使用を「許可」</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span class="flow-num">3</span>ゆっくり話す（途中で考えて黙ってもOK）</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span class="flow-num">4</span>「⏹ 停止」で確認、または「送信して調べる」</div>
+        </div>
+        <ul>
+          <li>聞き取った文字は入力欄にどんどん追記されます。間違えたら手で直せます。</li>
+          <li>話の途中で間が空いても<strong>自動では止まりません</strong>。止めるときは必ずボタンを押してください。</li>
+          <li>おすすめブラウザ：パソコン・Androidは Chrome、iPhoneは Safari。</li>
+        </ul>
+      </details>
+
+      <details class="guide">
+        <summary>③ 回答を聞く・地図で見る</summary>
+        <ul>
+          <li>回答の「🔊 読み上げ」を押すと、AIの声で回答を読み上げます。声の種類も選べます。</li>
+          <li>回答に地名が出てくると「🌏 地図・Google Earth」欄が表示されます。<br>「Google Earthで見る」でその場所へ飛べます。「Earth Studio用データ」はカメラの動きのデータ（JSON/KML）です。</li>
+        </ul>
+      </details>
+
+      <details class="guide">
+        <summary>④ 家族・友人に限定公開する仕組み</summary>
+        <div class="flow">
+          <div class="flow-step"><span class="flow-num">🔒</span>作った回答は<strong>最初は自分だけ</strong>が見られます</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span class="flow-num">👥</span>「公開先」で見せたい人を選ぶ（複数OK）</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span class="flow-num">🔓</span>スイッチを「公開」にする</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span class="flow-num">💌</span>相手の「届いた回答」に表示されます</div>
+        </div>
+        <ul>
+          <li>公開先に選ばれていない人は、URLを知っていても見られません。</li>
+          <li>スイッチを「非公開」に戻すと、すぐに見られなくなります（公開先の選択は残ります）。</li>
+          <li>公開先に選べるのは、このアプリに会員登録している人だけです。</li>
+        </ul>
+      </details>
+
+      <details class="guide">
+        <summary>⑤ LINEで送る・URLをコピー</summary>
+        <div class="flow">
+          <div class="flow-step"><span class="flow-num">1</span>先に公開先を選んで「公開」にする</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span class="flow-num">2</span>「LINEで送る」を押す</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span class="flow-num">3</span>LINEで送る相手を選んで送信</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span class="flow-num">4</span>受け取った人はリンクを開き、ログインすると回答が表示</div>
+        </div>
+        <ul>
+          <li>「URLをコピー」はメールや他のアプリに貼り付けるときに使います。</li>
+          <li>受け取った人が会員でない場合は、先に会員登録してもらい、あなたが公開先に追加してください。</li>
+        </ul>
+      </details>
+    </div>
+  </div>
+
+  <!-- トースト -->
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
