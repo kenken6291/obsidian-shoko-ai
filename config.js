@@ -8,7 +8,7 @@
 window.APP_CONFIG = {
   // GAS「ウェブアプリ」のURL（https://script.google.com/macros/s/xxxx/exec）
   // 空のままにすると、画面の「⚙ 設定」から入力したURL（ブラウザに保存）を使います。
-  GAS_URL: "",
+  GAS_URL: "https://script.google.com/macros/s/AKfycbxOzDYqkR27g1MI2SJexm4EtpIHnGKUoKdyQM71C3ok16-IYDIun5QzBConJTxbHynknQ/exec",
 
   // アプリ名とバージョン（ヘッダー・フッターに表示）
   APP_NAME: "Obsidian書庫AI",
